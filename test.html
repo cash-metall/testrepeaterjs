@@ -1,0 +1,228 @@
+<html>
+
+	<head>
+		<style type="text/css">
+			body {
+			}
+			.visualizer {
+				height: 200;
+				width: 100%;
+				display: flex;
+				justify-content: center;
+				align-items: center;
+				padding-bottom: 50px;
+			}
+			.logo {
+				margin: 2px;
+				border-radius: 10px;
+				background: blue;
+				min-width: 2px;
+
+			}
+			.mic {
+				border-radius: 20px;
+				background: red;
+				min-height: 20;
+				min-width: 10;
+				position: absolute;
+				left: 50;
+			}
+			.sql {
+				position: absolute;
+				left: 50;
+			}
+			.audios_history
+			{
+				padding-top: 100px;
+			}
+			h1 {
+				color: #000;
+				cursor: pointer;
+			}
+		</style>
+	</head>
+
+
+
+	<body>
+		<h1>Start</h1>
+	</body>
+
+
+
+	<script type="text/javascript">
+		window.onload = function() 
+		{
+
+			// к этому моменту страница загружена
+			/*СОЗДАЁМ ОСНОВНЫЕ ПЕРЕМЕННЫЕ*/
+			var body, num, array, context, myElements, analyser, frequencyBinCount, mic, sql, mediaRecorder,audios_history;
+
+				/*ЗАПИСЫВАЕМ В ПЕРЕМЕННУЮ body ЭЛЕМЕНТ body*/
+			body = document.querySelector('body');
+			var audioChunks = [];
+
+			/*УКАЗЫВАЕМ КОЛИЧЕСТВО СТОЛБЦОВ НА ИНДИКАТОРЕ*/
+			num = 100;
+
+			var record_enabled = false;
+			var record_start_time = 0;
+			var record_stop_time = 0;
+			var signal_time = 0;
+			var waiting_time = 0;
+
+			var silent_time = 2;
+			var min_record_time = 1;
+
+
+			/*ПРИ НАЖАТИИ НА КНОПКУ МЫШИ В ДОКУМЕНТЕ*/
+			window.onclick = function()
+			{
+
+				if(context) return;
+
+				/*УДАЛЯЕМ ЭЛЕМЕНТ С ТЕКСТОМ*/
+				body.querySelector('h1').remove();
+
+				/*ПРОПИСЫВАЕМ ЦИКЛ ВНУТРИ КОТОРОГО БУДЕМ СОЗДАВАТЬ ЭЛЕМЕНТЫ НАШИХ СТОЛБИКОВ*/
+				var vis = document.createElement('div');
+				vis.className = 'visualizer';
+				for(var i = 0 ; i < num ; i++){
+				   var logo = document.createElement('div'); /*КАЖДЫЙ ЭЛЕМЕНТ БУДЕТ ЗАПИСЫВАТЬСЯ ВНУТРИ ПЕРЕМЕННОЙ logo*/
+				   logo.className = 'logo'; /*ДЛЯ ВЫШЕ СОЗДАННОГО ЭЛЕМЕНТА МЫ ПРОПИСЫВАЕМ КЛАСС logo*/
+				   vis.appendChild(logo); /*ДОБАВЛЯЕМ ЭЛЕМЕНТ ВО ВНУТРЬ ЭЛЕМЕНТА body*/
+				 }
+				body.appendChild(vis);
+
+				myElements = document.getElementsByClassName('logo');/*ЗАПИСЫВАЕМ ЭЛЕМЕНТ logo В ПЕРЕМЕННУЮ myElement*/
+				// средний уровень
+				// mic = document.getElementById('mic');
+				mic = document.createElement('div');
+				mic.className = 'mic';
+				body.appendChild(mic);
+				// sql
+				// sql = document.getElementById('sql');
+				sql = document.createElement('input');
+				sql.type = 'range';
+				sql.className = 'sql';
+				sql.min = 0;
+				sql.max = 1;
+				sql.step = 0.01;
+				sql.value = 0.5;
+				body.appendChild(sql);
+				audios_history = document.createElement('div');
+				audios_history.className = 'audios_history';
+				body.appendChild(audios_history);
+
+
+
+				context = new AudioContext(); /*СОЗДАЕМ НОВЫЙ ЭКЗЕМПЛЯР КЛАССА AudioContext*/
+
+				/*СОЗДАЁМ АНАЛАЙЗЕР*/
+				analyser = context.createAnalyser();
+				frequencyBinCount = analyser.frequencyBinCount;
+
+				/*СОЗДАЕМ МАССИВ*/
+				array = new Uint8Array(frequencyBinCount);
+
+				/*СОЗДАЁМ ЗАПРОС ДОСТУПА К МИКРОФОНУ*/
+				navigator.mediaDevices.getUserMedia({
+					audio: true
+				}).then(stream => {
+					var src = context.createMediaStreamSource(stream);
+					src.connect(analyser);
+					
+					mediaRecorder = new MediaRecorder(stream);
+					mediaRecorder.addEventListener("dataavailable",function(event) { audioChunks.push(event.data); });
+					mediaRecorder.addEventListener("stop", function() {
+						if (record_stop_time - record_start_time > min_record_time)
+						{
+							waiting_time = record_stop_time + (record_stop_time - record_start_time) + silent_time * 2;
+							const audioBlob = new Blob(audioChunks, {
+								type: 'audio/wav'
+							});
+							var audio_container = document.createElement('div');
+							audio_container.value = Date();
+							var audio_date = document.createElement('div');
+							audio_date.textContent = Date();
+							audio_container.appendChild(audio_date);
+							const audioUrl = URL.createObjectURL(audioBlob);
+							var audio = document.createElement('audio');
+							audio.src = audioUrl;
+							audio.controls = true;
+							audio.autoplay = true;
+							audio_container.appendChild(audio);
+							audios_history.appendChild(audio_container);
+						}
+						audioChunks = [];
+					});
+					loop();
+				}).catch(error => {
+					console.log(error);
+					console.log(navigator.mediaDevices);
+					alert(error + '\r\n\ Rejected!!! its me 222');
+					// location.reload();
+				});
+			}
+
+			function loop() {
+				window.requestAnimationFrame(loop);
+				analyser.getByteFrequencyData(array);
+				// console.log(analyser);
+				var v = 0;
+				// var step = Math.floor(frequencyBinCount / num);
+				var step = 5
+				for(var i = 0 ; i < num ; i++){
+					var height = 0;
+					for (var j = 0; j < step; j++)
+					{
+						height += array[i * step + j];
+					}
+					height /= step;
+					myElements[i].style.minHeight = height+'px';
+					myElements[i].style.opacity = 0.008*height;
+					
+					v += height;
+				}
+				v /= num;
+				v /= 256; // normalize
+
+				mic.style.minWidth = v * (document.body.clientWidth - 100);
+				sql.style.minWidth = document.body.clientWidth - 100;
+
+				var current_time = Date.now()/1000;
+				if (current_time > waiting_time)
+				{
+					waiting_time = 0;
+					if (v > sql.value)
+					{
+						signal_time = current_time;
+						mic.style.background = "red";
+						if (!record_enabled)
+						{
+							mediaRecorder.start();
+							record_start_time = current_time;
+							record_enabled = true;
+							console.log("media start!!!!!!");
+						}
+					}
+					else
+					{
+						mic.style.background = "yellow";
+					}
+
+					if ((current_time - signal_time > silent_time) && record_enabled)
+					{
+						console.log("media stop!!!!!!");
+						record_stop_time = signal_time;
+						record_enabled = false;
+						mediaRecorder.stop();
+					}
+
+					if (audios_history.childElementCount > 10)
+						audios_history.removeChild(audios_history.firstChild);
+				}
+			}
+		};
+		</script>
+</html>

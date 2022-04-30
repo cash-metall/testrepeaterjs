@@ -13,10 +13,8 @@
 				padding-bottom: 50px;
 			}
 			.logo {
-				margin: 2px;
-				border-radius: 10px;
 				background: blue;
-				min-width: 2px;
+				min-width: 1.5%;
 
 			}
 			.mic {
@@ -31,9 +29,14 @@
 				position: absolute;
 				left: 50;
 			}
+			.settings
+			{
+				margin-top: 50px;
+				border-radius: 20px;
+			}
 			.audios_history
 			{
-				padding-top: 100px;
+				padding-top: 50px;
 			}
 			h1 {
 				color: #000;
@@ -51,19 +54,34 @@
 
 
 	<script type="text/javascript">
+		var create_checkbox = function(id, text, parent)
+		{				
+			var check = document.createElement('input');
+			check.type = 'checkbox';
+			check.id = id;
+			check.style = style="margin-left: 20px;"
+			parent.appendChild(check);
+
+			var label = document.createElement("label");
+			label.for = id;
+			label.textContent = text;
+			parent.appendChild(label);
+			return check;
+		};
+
 		window.onload = function() 
 		{
 
 			// к этому моменту страница загружена
 			/*СОЗДАЁМ ОСНОВНЫЕ ПЕРЕМЕННЫЕ*/
-			var body, num, array, context, myElements, analyser, frequencyBinCount, mic, sql, mediaRecorder,audios_history;
+			var body, num, array, context, myElements, analyser, frequencyBinCount, mic, sql, mediaRecorder,settings_div, audios_history,repeat_checkbox,save_checkbox;
 
 				/*ЗАПИСЫВАЕМ В ПЕРЕМЕННУЮ body ЭЛЕМЕНТ body*/
 			body = document.querySelector('body');
 			var audioChunks = [];
 
 			/*УКАЗЫВАЕМ КОЛИЧЕСТВО СТОЛБЦОВ НА ИНДИКАТОРЕ*/
-			num = 100;
+			num = 64;
 
 			var record_enabled = false;
 			var record_start_time = 0;
@@ -72,7 +90,7 @@
 			var waiting_time = 0;
 
 			var silent_time = 2;
-			var min_record_time = 1;
+			var min_record_time = 2;
 
 
 			/*ПРИ НАЖАТИИ НА КНОПКУ МЫШИ В ДОКУМЕНТЕ*/
@@ -80,6 +98,14 @@
 			{
 
 				if(context) return;
+
+								context = new AudioContext(); /*СОЗДАЕМ НОВЫЙ ЭКЗЕМПЛЯР КЛАССА AudioContext*/
+
+				/*СОЗДАЁМ АНАЛАЙЗЕР*/
+				analyser = context.createAnalyser();
+				frequencyBinCount = analyser.frequencyBinCount;
+				// num = frequencyBinCount;
+				console.log(num, frequencyBinCount);
 
 				/*УДАЛЯЕМ ЭЛЕМЕНТ С ТЕКСТОМ*/
 				body.querySelector('h1').remove();
@@ -110,17 +136,21 @@
 				sql.step = 0.01;
 				sql.value = 0.5;
 				body.appendChild(sql);
+
+				settings_div = document.createElement('div');
+				settings_div.className = 'settings';
+				body.appendChild(settings_div);
+
+				repeat_checkbox = create_checkbox('repeat', 'repeater', settings_div);
+				save_checkbox = create_checkbox('save_files', 'auto save files', settings_div);
+
 				audios_history = document.createElement('div');
 				audios_history.className = 'audios_history';
 				body.appendChild(audios_history);
 
 
 
-				context = new AudioContext(); /*СОЗДАЕМ НОВЫЙ ЭКЗЕМПЛЯР КЛАССА AudioContext*/
 
-				/*СОЗДАЁМ АНАЛАЙЗЕР*/
-				analyser = context.createAnalyser();
-				frequencyBinCount = analyser.frequencyBinCount;
 
 				/*СОЗДАЕМ МАССИВ*/
 				array = new Uint8Array(frequencyBinCount);
@@ -133,11 +163,14 @@
 					src.connect(analyser);
 					
 					mediaRecorder = new MediaRecorder(stream);
-					mediaRecorder.addEventListener("dataavailable",function(event) { audioChunks.push(event.data); });
+					mediaRecorder.addEventListener("dataavailable",function(event) { 
+						audioChunks.push(event.data); 
+						console.log(audioChunks);
+					});
 					mediaRecorder.addEventListener("stop", function() {
 						if (record_stop_time - record_start_time > min_record_time)
 						{
-							waiting_time = record_stop_time + (record_stop_time - record_start_time) + silent_time * 2;
+							waiting_time = repeat_checkbox.checked ? record_stop_time + (record_stop_time - record_start_time) + silent_time * 2 : record_stop_time + silent_time;
 							const audioBlob = new Blob(audioChunks, {
 								type: 'audio/wav'
 							});
@@ -150,9 +183,20 @@
 							var audio = document.createElement('audio');
 							audio.src = audioUrl;
 							audio.controls = true;
-							audio.autoplay = true;
+							audio.autoplay = repeat_checkbox.checked;
 							audio_container.appendChild(audio);
 							audios_history.appendChild(audio_container);
+
+							if (save_checkbox.checked)
+							{
+								var link = document.createElement('a');
+								document.body.appendChild(link);
+								link.download = Date();
+								link.href = window.URL.createObjectURL(audioBlob);
+								link.click();
+								document.body.removeChild(link); //remove the link when done
+
+							}
 						}
 						audioChunks = [];
 					});
@@ -160,7 +204,7 @@
 				}).catch(error => {
 					console.log(error);
 					console.log(navigator.mediaDevices);
-					alert(error + '\r\n\ Rejected!!! its me 222');
+					alert(error + '\r\n\ Rejected!!! cant get access to navigator.mediaDevices.getUserMedia');
 					// location.reload();
 				});
 			}
@@ -170,8 +214,8 @@
 				analyser.getByteFrequencyData(array);
 				// console.log(analyser);
 				var v = 0;
-				// var step = Math.floor(frequencyBinCount / num);
-				var step = 5
+				 var step = Math.floor(frequencyBinCount / num);
+				// var step = 1
 				for(var i = 0 ; i < num ; i++){
 					var height = 0;
 					for (var j = 0; j < step; j++)
@@ -203,6 +247,7 @@
 							mediaRecorder.start();
 							record_start_time = current_time;
 							record_enabled = true;
+							settings_div.style.background = "red";
 							console.log("media start!!!!!!");
 						}
 					}
@@ -216,6 +261,7 @@
 						console.log("media stop!!!!!!");
 						record_stop_time = signal_time;
 						record_enabled = false;
+						settings_div.style.background = '#00ff00';
 						mediaRecorder.stop();
 					}
 

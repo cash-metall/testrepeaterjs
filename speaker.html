@@ -232,7 +232,7 @@ class Speaker
     case "request":
       {
         if (this.context == "waiting_for_call")
-          UI.showMessage("Ошибка! не ответил лисе!");
+          UI.showMessage("Ошибка! не ответил лисе "+ this.n);
         this.speak_phrase = "Заря ответь лисе "+ this.n;
         this.state = "speak";
         this.next_state = "after_request";

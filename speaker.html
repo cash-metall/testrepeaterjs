@@ -47,10 +47,16 @@
       font-size: 0.9rem;
     }
 
-    #buttons {
+    .buttons {
       margin-top: 1.5rem;
       display: flex;
       justify-content: center;
+    }
+
+    #PPT {
+      width: 100%;
+      padding: 0.5rem;
+      height: 100px;
     }
 
     button {
@@ -75,8 +81,10 @@
   <div id="wrapper">
     <h1>для начала "всем лисам продолжаем"</h1>
     <textarea id="final_text" cols="30" rows="10"></textarea>
-    <div id="buttons">
+    <div class="buttons">
       <button id=PPT class="PPT">PPT</button>
+    </div>
+    <div id="buttons" class="buttons">
       <button class="start">Старт</button>
       <button class="stop">Стоп</button>
     </div>
@@ -489,7 +497,7 @@ window.onload = function()
 
   buttons.onclick = ({ target }) => {
     switch (target.className) {
-    case "start": Game.started = true;
+    case "start": Game.started = true; console.log("start!");
       break;
     case "stop": Game.started = false;
       break;

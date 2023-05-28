@@ -72,7 +72,7 @@
 
 <body>
   <div id="wrapper">
-    <h1>Speech Recognition - Dictaphone</h1>
+    <h1>для начала "всем лисам продолжаем"</h1>
     <textarea id="final_text" cols="30" rows="10"></textarea>
     <div id="buttons">
       <button id=PPT class="PPT">PPT</button>
@@ -153,7 +153,9 @@ class Speaker
   {
     if (this.stoped)
       return;
-    console.log("here state " + this.state);
+    if (this.state != "waiting_time")
+      console.log("лиса " + this.n + "state : " + this.state);
+
     switch (this.state) {
     case "waiting_time":
       {
@@ -185,7 +187,7 @@ class Speaker
     case "after_ping":
       {
         this.state = "waiting_time";
-        this.time = 10 + getRandom(0,10);
+        this.time = 5 + getRandom(10,30);
         if(getRandom(0,1) > 0.9)
           this.next_state = "request";
         else
@@ -238,7 +240,7 @@ class Speaker
       this.context = "waiting_for_command";
       return true;
     } 
-    if (message.includes("заря в канале") && context == "waiting_for_call")
+    if (message.includes("заря в канале") && this.context == "waiting_for_call")
     {
        this.speak_phrase = getRandomFrom(["нашли носки", "нашли перчатки", "нашли пакет"]);
       this.state = "speak";
@@ -275,7 +277,7 @@ class SpeakerGame
   {
     this.started = true;
     this.pool = [];
-    for (let i = 0; i < size; i++)
+    for (let i = 1; i < size+1; i++)
       this.pool.push(new Speaker(i, getRandom(0.8, 1.3), getRandom(0.5,1.4)));
 
     setInterval(this.update.bind(this), 100);

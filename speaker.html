@@ -79,7 +79,7 @@
 
 <body>
   <div id="wrapper">
-    <h1>для начала "всем лисам продолжаем"</h1>
+    <h1>для начала "всем лисам продолжаем"</h1> 
     <textarea id="final_text" cols="30" rows="10"></textarea>
     <div class="buttons">
       <button id=PPT class="PPT">PPT</button>
@@ -88,6 +88,7 @@
       <button class="start">Старт</button>
       <button class="stop">Стоп</button>
     </div>
+    <div id="status_label">статус</div>
   </div>
 </body>
 
@@ -330,6 +331,11 @@ class SpeakerGame
 
     if (!this.started)
       return;
+
+    status_label.innerHTML += ".";
+    if (status_label.innerHTML.length>10)
+      status_label.innerHTML = "";
+
     for (let s of this.pool)
     {
       s.update(0.1);
